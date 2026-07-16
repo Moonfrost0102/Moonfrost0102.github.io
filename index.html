@@ -4,28 +4,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCRAMBLE</title>
-    <!-- 引入twisty库 -->
-    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <title>三阶魔方实力测评</title>
+    <script src="https://cdn.cubing.net/v0/js/scramble-display" type="module"></script>
     <style>
         .showScramble {
+            /* 打乱公式 */
             background-color: #ebf8a6;
             width: 301px;
             height: 70px;
             position: absolute;
-            left: 10px;
+            left: 50px;
         }
 
-        twisty-player {
-            width: 300px;
-            margin: 50px auto;
+        scramble-display {
+            /* 打乱图 */
+            width: 150px;
+            height: 150px;
             display: block;
-            border: 1px solid #eee;
             position: absolute;
-            left: 10px;
+            left: 203px;
+            top: 62px;
         }
 
-        #refreshBtn{
+        #refreshBtn {
+            /* 刷新按钮 */
             width: 60px;
             height: 22px;
             position: absolute;
@@ -38,63 +40,196 @@
             border-radius: 5px;
         }
 
-        #scrambleAlg{
-            position:absolute;
+        #scrambleAlg {
+            /* 打乱公式 */
+            position: absolute;
             left: 5px;
         }
 
-        .copyRight{
+        .copyRight {
             position: absolute;
+            left: 50px;
             bottom: 0px;
             font-size: 12px;
             font-family: "微软雅黑";
         }
 
+        #timerBox {
+            /* 触摸计时界面 */
+            position: absolute;
+            left: 50px;
+            top: 78px;
+            width: 300px;
+            height: 274px;
+            /* border: 1px solid #000; */
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            font-size: 50px;
+            z-index: 2;
+        }
 
-
+        /* 成绩容器 宽230px 高150px */
+        .scoreWrap {
+            position: absolute;
+            left: 50px;
+            top: 300px;
+            width: 300px;
+            height: 200px;
+            border: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+        .avgLine {
+            padding: 4px;
+            border-bottom: 1px solid #000;
+            text-align: center;
+            font-size: 13px;
+        }
+        .scrollBox {
+            flex: 1;
+            overflow-y: auto;
+        }
+        #scoreTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        #scoreTable td, #scoreTable th {
+            border: 1px solid #999;
+            padding: 3px;
+            text-align: center;
+        }
+        .delBtn {
+            cursor: pointer;
+            padding: 1px 4px;
+        }
+        .levelLine {
+            padding: 4px;
+            border-top: 1px solid #000;
+            text-align: center;
+            font-size: 13px;
+        }
     </style>
-        
+
 </head>
 
 <body>
     <div class="showScramble">
-        <!-- 这里用来显示打乱 -->
-         <div id="scrambleAlg"></div>
-         <!-- 打乱公式会被传到这↑ -->
+        <div id="scrambleAlg"></div>
         <button id="refreshBtn">下一条</button>
     </div>
 
-    <div class="copyRight">
-        <p>制作：@浸寒月°</p>
+    <div id="timerBox">0.000</div>
+
+    <!-- 230*150 成绩面板 -->
+    <div class="scoreWrap">
+        <div class="avgLine" id="avgText">平均成绩：0.000秒</div>
+        <div class="scrollBox">
+            <table id="scoreTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>成绩</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreBody"></tbody>
+            </table>
+        </div>
+        <div class="levelLine" id="levelText">暂无成绩</div>
     </div>
 
+    <div class="copyRight">
+        <p>制作：@浸寒月° <br>内容仅供娱乐</p>
+    </div>
 
+    <!-- 计时器脚本 -->
+    <script>
+        let start, timer, running = false;
+        const timerBox = document.getElementById('timerBox');
+        const scoreBody = document.getElementById('scoreBody');
+        const avgText = document.getElementById('avgText');
+        const levelText = document.getElementById('levelText');
+        let scoreList = [];
 
-
-
-
-
-    <twisty-player></twisty-player>
-    <!-- 魔方渲染块，alg是魔方公式，可自己修改 -->
-
-     <script type="module">
-        import { randomScrambleForEvent } from "https://cdn.cubing.net/v0/js/cubing/scramble";
-        // 封装生成打乱的函数，页面加载、点击按钮都能用
-        async function createNewScramble() {
-            // 生成新打乱
-            const scramble = await randomScrambleForEvent("333");
-            // 文字框更新
-            document.querySelector("#scrambleAlg").innerText = scramble;
-            // 魔方 = 打乱 + z2
-            document.querySelector("twisty-player").alg = scramble + " z2";
+        // 更新平均分与等级
+        function updateAvgAndLevel() {
+            if (scoreList.length === 0) {
+                avgText.textContent = "平均成绩：0.000秒";
+                levelText.textContent = "暂无成绩";
+                return;
+            }
+            // 计算平均分
+            const sum = scoreList.reduce((a, b) => Number(a) + Number(b), 0);
+            const avg = (sum / scoreList.length).toFixed(3);
+            avgText.textContent = `平均成绩：${avg}秒`;
+            // 判断等级
+            const avgNum = Number(avg);
+            if (avgNum < 10) {
+                levelText.textContent = "大佬";
+            } else if (avgNum < 20) {
+                levelText.textContent = "高手";
+            } else {
+                levelText.textContent = "萌新";
+            }
         }
-        // 页面打开自动生成第一次
+
+        timerBox.onclick = () => {
+            if (!running) {
+                running = true;
+                start = performance.now();
+                timer = setInterval(() => {
+                    timerBox.textContent = ((performance.now() - start) / 1000).toFixed(3);
+                }, 10);
+            } else {
+                running = false;
+                clearInterval(timer);
+                const time = ((performance.now() - start) / 1000).toFixed(3);
+                timerBox.textContent = `${time}`;
+
+                // 新增成绩，无数量上限
+                scoreList.push(time);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${scoreList.length}</td>
+                    <td>${time}</td>
+                    <td><button class="delBtn">删</button></td>
+                `;
+                scoreBody.appendChild(tr);
+
+                // 删除按钮逻辑
+                tr.querySelector('.delBtn').onclick = function () {
+                    const rowIndex = Array.from(scoreBody.children).indexOf(tr);
+                    scoreList.splice(rowIndex, 1);
+                    tr.remove();
+                    // 刷新所有序号
+                    Array.from(scoreBody.children).forEach((row, idx) => {
+                        row.children[0].textContent = idx + 1;
+                    });
+                    updateAvgAndLevel();
+                }
+                updateAvgAndLevel();
+            }
+        }
+    </script>
+
+    <!-- 2D六面展开图 -->
+    <scramble-display puzzle="333" size="300"></scramble-display>
+
+    <!-- 打乱生成脚本 -->
+    <script type="module">
+        import { randomScrambleForEvent } from "https://cdn.cubing.net/v0/js/cubing/scramble";
+        async function createNewScramble() {
+            const scramble = await randomScrambleForEvent("333");
+            const scrambleText = scramble.toString();
+            document.querySelector("#scrambleAlg").innerText = scrambleText;
+            document.querySelector("scramble-display").scramble = scrambleText;
+        }
         createNewScramble();
-        // 绑定按钮点击事件，点了就重新生成
         document.querySelector("#refreshBtn").onclick = createNewScramble;
     </script>
 
-
 </body>
-
 </html>

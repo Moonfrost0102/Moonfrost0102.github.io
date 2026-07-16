@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔方展示</title>
+    <!-- 引入twisty库 -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <style>
+        .showScramble {
+            background-color: #ebf8a6;
+            width: 301px;
+            height: 70px;
+            position: absolute;
+            left: 10px;
+        }
+
+        twisty-player {
+            width: 300px;
+            margin: 50px auto;
+            display: block;
+            border: 1px solid #eee;
+            position: absolute;
+            left: 10px;
+        }
+
+        #refreshBtn{
+            width: 60px;
+            height: 22px;
+            position: absolute;
+            left: 230px;
+            top: 25px;
+            font-size: 11px;
+            font-family: "微软雅黑";
+            background-color: #ff6e6e;
+            border: 2px solid #ff4545;
+            border-radius: 5px;
+        }
+
+        #scrambleAlg{
+            position:absolute;
+            left: 5px;
+        }
+
+        .copyRight{
+            position: absolute;
+            bottom: 0px;
+            font-size: 12px;
+            font-family: "微软雅黑";
+        }
+
+
+
+    </style>
+        
+</head>
+
+<body>
+    <div class="showScramble">
+        <!-- 这里用来显示打乱 -->
+         <div id="scrambleAlg"></div>
+         <!-- 打乱公式会被传到这↑ -->
+        <button id="refreshBtn">下一条</button>
+    </div>
+
+    <div class="copyRight">
+        <p>制作：@浸寒月°</p>
+    </div>
+
+
+
+
+
+
+
+    <twisty-player></twisty-player>
+    <!-- 魔方渲染块，alg是魔方公式，可自己修改 -->
+
+     <script type="module">
+        import { randomScrambleForEvent } from "https://cdn.cubing.net/v0/js/cubing/scramble";
+        // 封装生成打乱的函数，页面加载、点击按钮都能用
+        async function createNewScramble() {
+            // 生成新打乱
+            const scramble = await randomScrambleForEvent("333");
+            // 文字框更新
+            document.querySelector("#scrambleAlg").innerText = scramble;
+            // 魔方 = 打乱 + z2
+            document.querySelector("twisty-player").alg = scramble + " z2";
+        }
+        // 页面打开自动生成第一次
+        createNewScramble();
+        // 绑定按钮点击事件，点了就重新生成
+        document.querySelector("#refreshBtn").onclick = createNewScramble;
+    </script>
+
+
+</body>
+
+</html>
